@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>vue进行CURD操作</title>
+    <style type="text/css">
+        [v-cloak] {
+            display: none
+        }
+
+        table {
+            border: 1px solid #ccc;
+            padding: 0;
+            border-collapse: collapse;
+            table-layout: fixed;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        table td,
+        table th {
+            height: 30px;
+            border: 1px solid #ccc;
+            background: #fff;
+            font-size: 15px;
+            padding: 3px 3px 3px 8px;
+        }
+
+        table th:first-child {
+            width: 30px;
+        }
+
+        .container,
+        .st {
+            width: 1000px;
+            margin: 10px auto 0;
+            font-size: 13px;
+            font-family: 'Microsoft YaHei'
+        }
+
+        .container .search {
+            font-size: 15px;
+            padding: 4px;
+        }
+
+        .container .add {
+            padding: 5px 15px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 6;
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .overlay td:first-child {
+            width: 66px;
+        }
+
+        .overlay .con {
+            position: absolute;
+            width: 420px;
+            min-height: 300px;
+            background: #fff;
+            left: 50%;
+            top: 50%;
+            -webkit-transform: translate3d(-50%, -50%, 0);
+            transform: translate3d(-50%, -50%, 0);
+            /*margin-top: -150px;*/
+            padding: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="st">
+        <h1>vue实现对数据的增删改查(CURD)</h1>
+    </div>
+    <div class="container" id="app">
+        <div>
+            <input type="text" placeholder="search" @input="search" list="cars" class="search">
+            <datalist id="cars">
+                <option v-for="item in searchlist" :value="item"></option>
+            </datalist>
+            <input type="button" class="add" @click="add" value="新增">
+        </div>
+        <div>
+            <table>
+                <tr>
+                    <th>id</th>
+                    <th>用户名</th>
+                    <th>邮箱</th>
+                    <th>性别</th>
+                    <th>省份</th>
+                    <th>爱好</th>
+                    <th>操作</th>
+                </tr>
+                <tr v-cloak v-for="(item, index) of slist">
+                    <td>{{index+1}}</td>
+                    <td>{{item.username}}</td>
+                    <td>{{item.email}}</td>
+                    <td>{{item.sex}}</td>
+                    <td>{{item.province}}</td>
+                    <td>{{item.hobby.join(' | ')}}</td>
+                    <td><a href="javascript:;" @click="showOverlay(index)">修改</a> | <a href="javascript:;"
+                            @click="del(index)">删除</a></td>
+                </tr>
+            </table>
+        </div>
+        <model :list='selectedlist' :isactive="isActive" v-cloak @change="changeOverlay" @modify="modify"></model>
+    </div>
+</body>
+</body>
+<script type="text/javascript" src="./js/global_variable.js"></script>
+<script type="text/javascript" src="./js/vue.js"></script>
+<script type="text/javascript" src="./js/axios.js"></script>
+<script type="text/javascript" src="./js/jquery-3.4.1.js"></script>
+<script type="text/javascript">
+    // 定义一个新组件
+    Vue.component('model', {
+        props: ['list', 'isactive'], // 组件定义属性
+        template: '<div class="overlay" v-show="isactive">\n' +
+            '                        <div class="con">\n' +
+            '                        <h2 class="title">新增 | 修改</h2>\n' +
+            '                        <div class="content">\n' +
+            '                        <table>\n' +
+            '                        <tr>\n' +
+            '                        <td>用户名</td>\n' +
+            '                        <td><input type="text" v-model="modifylist.username"></td>\n' +
+            '                        </tr>\n' +
+            '                        <tr>\n' +
+            '                        <td>邮箱</td>\n' +
+            '                        <td><input type="text" v-model="modifylist.email"></td>\n' +
+            '                        </tr>\n' +
+            '                        <tr>\n' +
+            '                        <td>性别</td>\n' +
+            '                        <td>\n' +
+            '                        <label><input type="radio" name="sex" value="男" v-model="modifylist.sex">男</label>\n' +
+            '                        <label><input type="radio" name="sex" value="女" v-model="modifylist.sex">女</label>\n' +
+            '                        <label><input type="radio" name="sex" value="未知" v-model="modifylist.sex">未知</label>\n' +
+            '                        </td>\n' +
+            '                        </tr>\n' +
+            '                        <tr>\n' +
+            '                        <td>省份</td>\n' +
+            '                        <td>\n' +
+            '                        <select name="" id="" v-model="modifylist.province">\n' +
+            '                        <option value="北京市">北京市</option>\n' +
+            '                        <option value="河北省">河北省</option>\n' +
+            '                        <option value="河南省">河南省</option>\n' +
+            '                        <option value="重庆市">重庆市</option>\n' +
+            '                        <option value="广东省">广东省</option>\n' +
+            '                        <option value="辽宁省">辽宁省</option>\n' +
+            '                        </select>\n' +
+            '                        </td>\n' +
+            '                        </tr>\n' +
+            '                        <tr>\n' +
+            '                        <td>爱好</td>\n' +
+            '                        <td>\n' +
+            '                        <label><input type="checkbox" v-model="modifylist.hobby" value="篮球">篮球</label>\n' +
+            '                        <label><input type="checkbox" v-model="modifylist.hobby" value="读书">读书</label>\n' +
+            '                        <label><input type="checkbox" v-model="modifylist.hobby" value="插画">插画</label>\n' +
+            '                        <label><input type="checkbox" v-model="modifylist.hobby" value="编程">编程</label>\n' +
+            '                        <label><input type="checkbox" v-model="modifylist.hobby" value="弹琴">弹琴</label>\n' +
+            '                        </td>\n' +
+            '                        </tr>\n' +
+            '                        </table>\n' +
+            '                        <p>\n' +
+            '                        <input type="button" @click="changeActive" value="取消">\n' +
+            '                        <input type="button" @click="modify" value="保存">\n' +
+            '                        </p>\n' +
+            '                        </div>\n' +
+            '                        </div>\n' +
+            '                    </div>',
+        computed: {
+            modifylist() {
+                return this.list;
+            }
+        },
+        methods: {
+            // 取消
+            changeActive() {
+                this.$emit('change');
+            },
+            // 保存
+            modify() {
+                // 触发事件，参数：事件名称、参数
+                // @modify：绑定事件
+                this.$emit('modify', this.modifylist);
+            }
+        }
+    });
+
+    var app = new Vue({
+        el: '#app',
+        data: {
+            isActive: false, // 是否显示模态框
+            selected: -1, // 判断是修改还是添加，如果是添加selected = -1，否则为id
+            selectedlist: {}, // 新增、修改列表的内容
+            slist: [], // 在浏览器中的数据
+            searchlist: [],// 搜索列表
+            list: []// 定义的初始化数据
+        },
+        created() {
+
+            // 发送异步请求，加载用户列表
+            axios.get(BASE_URL + '/user')
+                .then(result => { // 执行成功后返回结果
+
+                    let res = result.data.data
+                    res.forEach(item => {
+                        if (item.hobby.split(',') != null) {
+                            item.hobby = item.hobby.split(',');
+                        }
+                    })
+                    // this.list = res;
+                    // console.log(list);
+                    this.setSlist(res);
+                })
+                .catch(function (err) {
+                    console.log(err);
+                });
+
+            // this.setSlist(this.list);
+
+        },
+        methods: {
+            // 单击修改数据
+            showOverlay(index) {
+
+                this.selected = index; // 声明是进行修改
+                this.selectedlist = this.list[index];
+
+                this.isActive = true; // 显示模态框
+
+                // this.changeOverlay(); // 初始化，这里"this.selected"的值应该id
+            },
+
+            // 点击保存按钮：修改、添加
+            modify(arr) {
+
+                /*
+                    1 qs.parse()将URL解析成对象的形式
+                    2 JSON.parse（用于从一个字符串中解析出json 对象）
+                    3 JSON.stringify（用于从一个对象解析出字符串）
+                */
+
+                let args = {
+                    "username": this.selectedlist.username + "",
+                    "email": this.selectedlist.email + "",
+                    "sex": this.selectedlist.sex + "",
+                    "province": this.selectedlist.province + "",
+                    "hobby": this.selectedlist.hobby + ""
+                };
+
+                if (this.selected > -1) { // 修改
+                    Vue.set(this.list, this.selected, arr);
+
+                    console.log("id = " + this.selected);
+                    // 修改：发送异步请求
+                    let uid = this.list[this.selected].uid;
+                    args.uid = uid;
+                    axios.put(BASE_URL + '/user', args)
+                        .then(result => { // 执行成功后返回结果
+                            alert(result.data.message);
+                        })
+                        .catch(function (err) {
+                            console.log(err.message);
+                        });
+
+
+                    this.selected = -1;
+                } else { // 添加
+
+                    this.list.push(arr);
+                    axios.post(BASE_URL + '/user', args)
+                        .then(result => { // 执行成功后返回结果
+                            alert(result.data.message);
+                        })
+                        .catch(function (err) {
+                            console.log(err.message);
+                        });
+                }
+                this.setSlist(this.list);
+                this.changeOverlay();
+            },
+
+            // 显示模态窗口
+            add: function () {
+                this.selectedlist = {
+                    username: '',
+                    email: '',
+                    sex: '男',
+                    province: '广东省',
+                    hobby: []
+                };
+                this.isActive = true;
+            },
+
+            // delete list in index location 删除索引位置中的列表
+            del(index) {
+                if (confirm("确定删除吗？")) {
+                    // 获取删除项的uid
+                    let uid = this.slist[index].uid;
+                    console.log("uid = " + uid);
+
+                    this.list.splice(index, 1);
+                    this.setSlist(this.list);
+
+                    // 根据id删除
+                    axios.delete(BASE_URL + '/user/' + uid)
+                        .then(result => { // 执行成功后返回结果
+
+                            let statuCode = result.data.statuCode; // 获取响应应的状态码
+
+                            if (OK == statuCode) {
+                                alert("删除成功");
+                            } else {
+                                alert(result.data.message);
+                            }
+                        })
+                        .catch(function (err) {
+                            console.log(err);
+                        });
+                }
+            },
+
+            // 初始化
+            changeOverlay() {
+                this.selected = -1;
+                this.isActive = !this.isActive;
+            },
+
+            // 获取需要渲染到页面中的数据
+            setSlist(arr) {
+                this.slist = JSON.parse(JSON.stringify(arr));
+                this.list = this.slist;
+            },
+
+            // 搜索
+            search(e) {
+                var v = e.target.value;
+                var self = this;
+                self.searchlist = [];
+                if (v) {
+                    var ss = [];
+                    // 过滤需要的数据
+                    this.list.forEach(function (item) {
+                        if (item.username.indexOf(v) > -1) {
+                            if (self.searchlist.indexOf(item.username) == -1) {
+                                self.searchlist.push(item.username);
+                            }
+                            ss.push(item);
+                        } else if (item.email.indexOf(v) > -1) {
+                            if (self.searchlist.indexOf(item.email) == -1) {
+                                self.searchlist.push(item.email);
+                            }
+                            ss.push(item);
+                        }
+                    });
+                    this.setSlist(ss); // 将过滤后的数据给了slist
+                } else {
+                    // 没有搜索内容，则展示全部数据
+                    // this.setSlist(this.list);
+                    this.setSlist(this.list);
+                }
+            }
+        },
+        watch: {
+        }
+    })
+</script>
+
+</html>

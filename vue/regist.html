@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>用户登录</title>
+</head>
+
+<body>
+    <div id="app">
+
+
+        <div style="width: 500px; margin: 0 auto; text-align: center; margin-top: 30px;">
+            <p>用户注册</p>
+
+            <div>
+                <span style="color: #ff0000;">{{msg.message}}</span>
+                <div style="height: 30px;">
+                    <input type="email" v-model="userInfo.username" placeholder="用户名">
+                </div>
+
+                <div style="height: 30px;">
+                    <input type="password" v-model="userInfo.password" placeholder="密码">
+                </div>
+
+                <div style="height: 30px;">
+                    <button type="submit" @click="regist">注册</button>
+                    <a href="./login.html">已有账号???</a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script type="text/javascript" src="./js/global_variable.js"></script>
+    <script type="text/javascript" src="./js/vue.js"></script>
+    <script type="text/javascript" src="./js/axios.js"></script>
+    <script type="text/javascript" src="./js/jquery-3.4.1.js"></script>
+    <script>
+
+        var vue = new Vue({
+            el: "#app",
+            data: {
+                msg: {
+                    message: "",
+                    usernameMsg: "",
+                    passwordMsg: ""
+                },
+                userInfo: {
+                    username: "",
+                    password: ""
+                }
+            },
+            methods: {
+                regist: function () {
+
+                    alert("username = "+this.userInfo.username+"\npassword = "+this.userInfo.password);
+
+                    // 用户登录
+                    axios.post(BASE_URL + '/user/regist', this.userInfo)
+                        .then(result => { // 执行成功后返回结果
+                            if (result.data.statuCode == OK) {
+                                window.location = "./login.html";
+                            } else {
+                                this.msg.message = result.data.message;
+                            }
+                        })
+                        .catch(function (err) {
+                            console.log(err.message);
+                        });
+                }
+            }
+        });
+
+    </script>
+</body>
+
+</html>
